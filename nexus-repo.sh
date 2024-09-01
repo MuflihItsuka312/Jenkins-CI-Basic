@@ -1,39 +1,16 @@
-
 #!/bin/bash
-yum install java-1.8.0-openjdk.x86_64 wget -y   
-mkdir -p /opt/nexus/   
-mkdir -p /tmp/nexus/                           
-cd /tmp/nexus/
-NEXUSURL="https://download.sonatype.com/nexus/3/latest-unix.tar.gz"
-wget $NEXUSURL -O nexus.tar.gz
-sleep 10
-EXTOUT=`tar xzvf nexus.tar.gz`
-NEXUSDIR=`echo $EXTOUT | cut -d '/' -f1`
-sleep 5
-rm -rf /tmp/nexus/nexus.tar.gz
-cp -r /tmp/nexus/* /opt/nexus/
-sleep 5
-useradd nexus
-chown -R nexus.nexus /opt/nexus 
-cat <<EOT>> /etc/systemd/system/nexus.service
-[Unit]                                                                          
-Description=nexus service                                                       
-After=network.target                                                            
-                                                                  
-[Service]                                                                       
-Type=forking                                                                    
-LimitNOFILE=65536                                                               
-ExecStart=/opt/nexus/$NEXUSDIR/bin/nexus start                                  
-ExecStop=/opt/nexus/$NEXUSDIR/bin/nexus stop                                    
-User=nexus                                                                      
-Restart=on-abort                                                                
-                                                                  
-[Install]                                                                       
-WantedBy=multi-user.target                                                      
+# install sonatype nexus
+mkdir -pv /opt/efsfilesystem/sonatype-work
+ln -sv /opt/efsfilesystem/sonatype-work /opt/sonatype-work
+wget --output-document /tmp/nexus.tar.gz https://sonatype-download.global.ssl.fastly.net/nexus/3/nexus-3.22.1-02-unix.tar.gz
+mkdir -p /opt/nexus
+tar xf /tmp/nexus.tar.gz -C /opt/nexus --strip-components 1
 
-EOT
+# run as nexus user
+useradd --home-dir /opt/nexus --no-create-home --uid 1001 nexus
+chown -R nexus:nexus /opt/efsfilesystem
+chown -R nexus:nexus /opt/nexus
+chown -R nexus:nexus /opt/sonatype-work
 
-echo 'run_as_user="nexus"' > /opt/nexus/$NEXUSDIR/bin/nexus.rc
-systemctl daemon-reload
-systemctl start nexus
-systemctl enable nexus
+#run nexus
+sudo /opt/nexus/bin/nexus start
